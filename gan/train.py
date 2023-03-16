@@ -15,7 +15,7 @@ def build_transforms():
     # 2. Rescale input image to be between -1 and 1.
     # NOTE: don't do anything fancy for 2, hint: the input image is between 0 and 1.
     to_tensor = transforms.ToTensor()
-    rescale = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    rescale = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     ds_transforms = transforms.Compose([to_tensor, rescale])
 
     return ds_transforms
@@ -28,14 +28,26 @@ def get_optimizers_and_schedulers(gen, disc):
     # 2. Construct the learning rate schedulers for the generator and discriminator.
     # The learning rate for the discriminator should be decayed to 0 over 500K iterations.
     # The learning rate for the generator should be decayed to 0 over 100K iterations.
+    
+    # optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
+    # optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
+    
+    # scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(
+    #     optim_discriminator, lambda x: 1 - x / 500000
+    # )
+    # scheduler_generator = torch.optim.lr_scheduler.LambdaLR(
+    #     optim_generator, lambda x: 1 - x / 100000
+    # )
+
+    # Adeesh Code Starts
     optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
+    scheduler_discriminator = torch.optim.lr_scheduler.LinearLR(optim_discriminator,1,1/500000,500000)
+
     optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
-    scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(
-        optim_discriminator, lambda x: 1 - x / 500000
-    )
-    scheduler_generator = torch.optim.lr_scheduler.LambdaLR(
-        optim_generator, lambda x: 1 - x / 100000
-    )
+    scheduler_generator = torch.optim.lr_scheduler.LinearLR(optim_generator,1,1/100000,100000)
+    # Adeesh Code Ends
+
+
     return (
         optim_discriminator,
         scheduler_discriminator,
@@ -59,7 +71,7 @@ class Dataset(VisionDataset):
     def __len__(self):
         return len(self.file_names)
 
-
+import pdb
 def train_model(
     gen,
     disc,
@@ -104,14 +116,24 @@ def train_model(
                 # 1. Compute generator output -> the number of samples must match the batch size.
                 # 2. Compute discriminator output on the train batch.
                 # 3. Compute the discriminator output on the generated data.
-
-                # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
-
-                gen_output = gen(train_batch.shape[1])
+                # print("Train batch shape = ", train_batch.shape)
+                gen_output = gen(train_batch.shape[0])
                 disc_output_train = disc(train_batch)
                 disc_output_gen = disc(gen_output)
+                
+                # ADEESH CODE STARTS HERE
+                # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
+                # eps = torch.rand(1).cuda()
+                # # print("Eps / shape = ", eps, eps.shape)
+                # # print("Gen out/ train_batch shape = ", gen_out.shape,train_batch.shape)
+                # interp = eps * gen_output + (1 - eps) * train_batch
+                # discrim_interp = disc(interp)
+                # ADEESH CODE ENDS HERE
 
-            discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, interpolated_output)
+                # TODO make changes for 1.5
+                # discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, interpolated_output)
+                discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, None, None, None)
+            # pdb.set_trace()    
             optim_discriminator.zero_grad(set_to_none=True)
             scaler.scale(discriminator_loss).backward()
             scaler.step(optim_discriminator)
@@ -120,6 +142,12 @@ def train_model(
             if iters % 5 == 0:
                 with torch.cuda.amp.autocast(enabled=amp_enabled):
                     # TODO 1.2: compute generator and discriminator output on generated data.
+                    gen_output = gen(train_batch.shape[0])
+                    disc_output_gen = disc(gen_output)
+                    
+                    #Adeesh code starts here
+                    generator_loss = gen_loss_fn(disc_output_gen)
+
                 optim_generator.zero_grad(set_to_none=True)
                 scaler.scale(generator_loss).backward()
                 scaler.step(optim_generator)
@@ -129,6 +157,9 @@ def train_model(
                 with torch.no_grad():
                     with torch.cuda.amp.autocast(enabled=amp_enabled):
                         # TODO 1.2: Generate samples using the generator, make sure they lie in the range [0, 1].
+                        generated_samples = gen(train_batch.shape[0])
+                        generated_samples = generated_samples*0.5 + 0.5
+                        
                     save_image(
                         generated_samples.data.float(),
                         prefix + "samples_{}.png".format(iters),
