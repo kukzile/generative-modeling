@@ -15,16 +15,11 @@ def compute_discriminator_loss(
     TODO 1.3.1: Implement GAN loss for discriminator.
     Do not use discrim_interp, gitinterp, lamb. They are placeholders for Q1.5.
     """
-    
-    # loss = -torch.log(discrim_real) - torch.log(1 - discrim_fake)
-    criterion = torch.nn.BCEWithLogitsLoss()
-    real_loss = criterion(discrim_real, torch.ones_like(discrim_real)) 
-    fake_loss = criterion(discrim_fake, torch.zeros_like(discrim_fake)) 
-    loss = real_loss + fake_loss
-    # real_loss = nn.BCEWithLogitsLoss(discrim_real, torch.ones_like(discrim_real))
-    # fake_loss = nn.BCEWithLogitsLoss(discrim_fake, torch.zeros_like(discrim_fake))
-    # return real_loss + fake_loss
-    # print(loss)
+    with torch.cuda.amp.autocast(enabled=True):
+        criterion = torch.nn.BCEWithLogitsLoss()
+        real_loss = criterion(discrim_real, torch.ones_like(discrim_real,dtype=torch.float)) 
+        fake_loss = criterion(discrim_fake, torch.zeros_like(discrim_fake, dtype=torch.float)) 
+        loss = real_loss + fake_loss
     return loss
     
 
@@ -32,10 +27,9 @@ def compute_generator_loss(discrim_fake):
     """
     TODO 1.3.1: Implement GAN loss for generator.
     """
-    criterion = torch.nn.BCEWithLogitsLoss()
-    loss = criterion(discrim_fake, torch.ones_like(discrim_fake))
-    # return F.binary_cross_entropy_with_logits(discrim_fake, torch.ones_like(discrim_fake))
-    # loss = -torch.log(discrim_fake)
+    with torch.cuda.amp.autocast(enabled=True):
+        criterion = torch.nn.BCEWithLogitsLoss()
+        loss = criterion(discrim_fake, torch.ones_like(discrim_fake, dtype=torch.float))
     return loss
 
 

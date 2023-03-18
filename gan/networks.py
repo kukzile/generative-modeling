@@ -22,8 +22,7 @@ class UpSampleConv2D(torch.jit.ScriptModule):
         self.padding = padding
         self.conv_layer = nn.Conv2d(self.input_channels, self.n_filters, self.kernel_size, padding=self.padding)
         self.pixel_shuffle = nn.PixelShuffle(self.upscale_factor)
-        # print("debug")
-        # print(self.upscale_factor ** 2)
+
 
 
     @torch.jit.script_method
@@ -35,8 +34,6 @@ class UpSampleConv2D(torch.jit.ScriptModule):
         # 3. Apply convolution and return output
         
         # Upscale x
-        # print("debug")
-        # print(self.upscale_factor ** 2)
         x = x.repeat(1, int(self.upscale_factor ** 2), 1, 1)
         x = self.pixel_shuffle(x)
         return self.conv_layer(x)
@@ -54,8 +51,8 @@ class DownSampleConv2D(torch.jit.ScriptModule, nn.Module):
         self.n_filters = n_filters
         self.downscale_ratio = downscale_ratio
         self.padding = padding
-        self.conv = nn.Conv2d(self.input_channels, self.n_filters, self.kernel_size, padding=self.padding)
-        self.pixelunshuffle = nn.PixelUnshuffle(self.downscale_ratio)
+        self.conv_layer = nn.Conv2d(self.input_channels, self.n_filters, self.kernel_size, padding=self.padding)
+        self.pixel_unshuffle = nn.PixelUnshuffle(self.downscale_ratio)
 
     @torch.jit.script_method
     def forward(self, x):
@@ -64,19 +61,14 @@ class DownSampleConv2D(torch.jit.ScriptModule, nn.Module):
         # to form a (batch x channel * downscale_factor^2 x height x width) output
         # 2. Then split channel wise into (downscale_factor^2xbatch x channel x height x width) images
         # 3. Average across dimension 0, apply convolution and return output
-        pixel_unshuffle_x = self.pixelunshuffle(x)
         
-        split_x = torch.chunk(pixel_unshuffle_x, self.downscale_ratio*self.downscale_ratio, dim=1)
-        avg_x = torch.mean(torch.stack(list(split_x)), dim=0)
-        sqz = torch.squeeze(avg_x)
-        conv_x = self.conv(sqz)
+        unshuffle_x = self.pixel_unshuffle(x)
+        split_tensors = torch.split(unshuffle_x, unshuffle_x.shape[1] // int(self.downscale_ratio**2), dim=1)
+        output_tensor = torch.stack(split_tensors, dim=0)
+        output_tensor = torch.mean(output_tensor, dim=0)
+        conv_x = self.conv_layer(output_tensor)
         return conv_x
 
-        # x = self.pixel_unshuffle(x)
-        # x = torch.split(x, 1, dim=1)
-        # x = torch.cat(x, dim=0)
-        # x = torch.mean(x, dim=0)
-        # return self.conv_layer(x)
 
 class ResBlockUp(torch.jit.ScriptModule):
     # TODO 1.1: Impement Residual Block Upsampler.

@@ -14,6 +14,7 @@ def build_transforms():
     # 1. Convert input image to tensor.
     # 2. Rescale input image to be between -1 and 1.
     # NOTE: don't do anything fancy for 2, hint: the input image is between 0 and 1.
+
     to_tensor = transforms.ToTensor()
     rescale = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     ds_transforms = transforms.Compose([to_tensor, rescale])
@@ -29,23 +30,23 @@ def get_optimizers_and_schedulers(gen, disc):
     # The learning rate for the discriminator should be decayed to 0 over 500K iterations.
     # The learning rate for the generator should be decayed to 0 over 100K iterations.
     
-    # optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
-    # optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
-    
-    # scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(
-    #     optim_discriminator, lambda x: 1 - x / 500000
-    # )
-    # scheduler_generator = torch.optim.lr_scheduler.LambdaLR(
-    #     optim_generator, lambda x: 1 - x / 100000
-    # )
-
-    # Adeesh Code Starts
     optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
-    scheduler_discriminator = torch.optim.lr_scheduler.LinearLR(optim_discriminator,1,1/500000,500000)
-
     optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
-    scheduler_generator = torch.optim.lr_scheduler.LinearLR(optim_generator,1,1/100000,100000)
-    # Adeesh Code Ends
+    
+    scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(
+        optim_discriminator, lambda x: 1 - x / 500000
+    )
+    scheduler_generator = torch.optim.lr_scheduler.LambdaLR(
+        optim_generator, lambda x: 1 - x / 100000
+    )
+
+    # # Adeesh Code Starts
+    # optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
+    # scheduler_discriminator = torch.optim.lr_scheduler.LinearLR(optim_discriminator,1,1/500000,500000)
+
+    # optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
+    # scheduler_generator = torch.optim.lr_scheduler.LinearLR(optim_generator,1,1/100000,100000)
+    # # Adeesh Code Ends
 
 
     return (
@@ -133,7 +134,7 @@ def train_model(
                 # TODO make changes for 1.5
                 # discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, interpolated_output)
                 discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, None, None, None)
-            # pdb.set_trace()    
+
             optim_discriminator.zero_grad(set_to_none=True)
             scaler.scale(discriminator_loss).backward()
             scaler.step(optim_discriminator)

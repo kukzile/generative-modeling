@@ -42,29 +42,29 @@ def interpolate_latent_space(gen, path):
     # Use torchvision.utils.save_image to save out the visualization.
 
     # Adeesh Starts
-    z = torch.zeros((100, 128))
-    z[:, :2] = torch.linspace(-1, 1, 100)[:, None]
-    # Keep the rest of the z vector for the samples to be some fixed value (e.g. 0).
-    # Forward the samples through the generator.
-    samples = gen.forward_given_samples(z.cuda())
-    #Save out an image holding all 100 samples.
-    #torchvision.utils.save_image(out, "interpolate_latent_space.png")
-    torchvision.utils.save_image(samples, path, nrow=10)
+    # z = torch.zeros((100, 128))
+    # z[:, :2] = torch.linspace(-1, 1, 100)[:, None]
+    # # Keep the rest of the z vector for the samples to be some fixed value (e.g. 0).
+    # # Forward the samples through the generator.
+    # samples = gen.forward_given_samples(z.cuda())
+    # #Save out an image holding all 100 samples.
+    # #torchvision.utils.save_image(out, "interpolate_latent_space.png")
+    # torchvision.utils.save_image(samples, path, nrow=10)
     # Adeesh Ends
 
-    # min_val = -1
-    # max_val = 1
-    # num_steps = 10
-    # samples = torch.zeros(100, 128).cuda()
-    # dim_1 = np.linspace(min_val, max_val, num_steps)
-    # dim_2 = np.linspace(min_val, max_val, num_steps)
-    # xx, yy = np.meshgrid(dim_1, dim_2, indexing='ij')
-    # interp_points = np.column_stack([xx.ravel(), yy.ravel()])
-    # samples[:, :2] = torch.from_numpy(interp_points).cuda()
+    min_val = -1
+    max_val = 1
+    num_steps = 10
+    samples = torch.zeros(100, 128).cuda()
+    dim_1 = np.linspace(min_val, max_val, num_steps)
+    dim_2 = np.linspace(min_val, max_val, num_steps)
+    xx, yy = np.meshgrid(dim_1, dim_2, indexing='ij')
+    interp_points = np.column_stack([xx.ravel(), yy.ravel()])
+    samples[:, :2] = torch.from_numpy(interp_points).cuda()
 
-    # generated_samples = gen.forward_given_samples(samples)
-    # # generated_samples = (generated_samples / 2 + 0.5) * 255
-    # torchvision.utils.save_image(generated_samples, path, nrow=10)
+    generated_samples = gen.forward_given_samples(samples)
+    # generated_samples = (generated_samples / 2 + 0.5) * 255
+    torchvision.utils.save_image(generated_samples, path, nrow=10)
     
 
 def get_args():
