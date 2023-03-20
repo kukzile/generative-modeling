@@ -63,7 +63,7 @@ class DiffusionModel(nn.Module):
         # TODO 3.1: Compute the posterior mean and variance for x_{t-1}
         # using the coefficients, x_t, and x_0
         # hint: can use extract function from utils.py
-        posterior_mean = self.posterior_mean_coef1[t] * x_0 + self.posterior_mean_coef2[t] * x_t
+        posterior_mean = extract(self.posterior_mean_coef1, t, x_0.shape * x_0 + self.posterior_mean_coef2[t] * x_t
         posterior_variance = self.posterior_variance[t]
         posterior_log_variance_clipped = self.posterior_log_variance_clipped[t]
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
@@ -99,6 +99,8 @@ class DiffusionModel(nn.Module):
 
     def sample_times(self, total_timesteps, sampling_timesteps):
         # TODO 3.2: Generate a list of times to sample from.
+        times = torch.linspace(-1, )
+
         pass
 
     def get_time_pairs(self, times):
@@ -143,4 +145,5 @@ class DiffusionModel(nn.Module):
     @torch.no_grad()
     def sample_given_z(self, z, shape):
         #TODO 3.3: fill out based on the sample function above
-        pass
+        sample_fn = self.sample_ddpm if not self.is_ddim_sampling else self.sample_ddim
+        return sample_fn(shape, z)
