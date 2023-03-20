@@ -63,7 +63,7 @@ class DownSampleConv2D(torch.jit.ScriptModule, nn.Module):
         # 3. Average across dimension 0, apply convolution and return output
         
         unshuffle_x = self.pixel_unshuffle(x)
-        split_tensors = torch.split(unshuffle_x, unshuffle_x.shape[1] // int(self.downscale_ratio**2), dim=1)
+        split_tensors = torch.split(unshuffle_x, int(unshuffle_x.shape[1] / self.downscale_ratio**2), dim=1)
         output_tensor = torch.stack(split_tensors, dim=0)
         output_tensor = torch.mean(output_tensor, dim=0)
         conv_x = self.conv_layer(output_tensor)

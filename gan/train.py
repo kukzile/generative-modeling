@@ -30,14 +30,14 @@ def get_optimizers_and_schedulers(gen, disc):
     # The learning rate for the discriminator should be decayed to 0 over 500K iterations.
     # The learning rate for the generator should be decayed to 0 over 100K iterations.
     
-    optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
+    optim_discriminator = torch.optim.AdamW(disc.parameters(), lr=0.0002, betas=(0, 0.9))
     optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
     
     scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(
-        optim_discriminator, lambda x: 1 - x / 500000
+        optim_discriminator, lambda x: 1 - (0.68*x) / 500000
     )
     scheduler_generator = torch.optim.lr_scheduler.LambdaLR(
-        optim_generator, lambda x: 1 - x / 100000
+        optim_generator, lambda x: 1 - (0.68*x) / 100000
     )
 
     # # Adeesh Code Starts
@@ -143,7 +143,7 @@ def train_model(
             if iters % 5 == 0:
                 with torch.cuda.amp.autocast(enabled=amp_enabled):
                     # TODO 1.2: compute generator and discriminator output on generated data.
-                    gen_output = gen(train_batch.shape[0])
+                    gen_output = gen(100)
                     disc_output_gen = disc(gen_output)
                     
                     #Adeesh code starts here

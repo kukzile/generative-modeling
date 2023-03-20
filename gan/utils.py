@@ -63,8 +63,8 @@ def interpolate_latent_space(gen, path):
     samples[:, :2] = torch.from_numpy(interp_points).cuda()
 
     generated_samples = gen.forward_given_samples(samples)
-    # generated_samples = (generated_samples / 2 + 0.5) * 255
-    torchvision.utils.save_image(generated_samples, path, nrow=10)
+    generated_samples = (generated_samples *0.5 + 0.5)
+    torchvision.utils.save_image(generated_samples, path, nrow=10, normalize=True)
     
 
 def get_args():
