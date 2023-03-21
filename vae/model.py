@@ -21,20 +21,51 @@ class Encoder(nn.Module):
                 (6): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
             )
         """
+        self.conv = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+        )
+        self.fc = nn.Linear(int(256*(self.input_shape[1]//8)*(self.input_shape[2]//8)), self.latent_dim)
 
         #TODO 2.1: fill in self.fc, such that output dimension is self.latent_dim
 
     def forward(self, x):
         #TODO 2.1 : forward pass through the network, output should be of dimension : self.latent_dim
+        x = self.conv(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        return x
+
 
 class VAEEncoder(Encoder):
     def __init__(self, input_shape, latent_dim):
         super().__init__(input_shape, latent_dim)
         #TODO 2.4: fill in self.fc, such that output dimension is 2*self.latent_dim
+        self.input_shape = input_shape
+        self.latent_dim = latent_dim
+        self.conv = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+        )
+        self.fc = nn.Linear(int(256*(self.input_shape[1]/8)*(self.input_shape[1]/8)), 2*self.latent_dim)
 
     def forward(self, x):
         #TODO 2.4: forward pass through the network.
         # should return a tuple of 2 tensors, mu and log_std
+        x = self.conv(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        mu, log_std = x[:, :self.latent_dim], x[:, self.latent_dim:]
         return mu, log_std
 
 
@@ -45,7 +76,7 @@ class Decoder(nn.Module):
         self.output_shape = output_shape
 
         #TODO 2.1: fill in self.base_size
-
+        self.base_size = 256*(self.output_shape[1]//8)*(self.output_shape[2]//8)
         """
         TODO 2.1 : Fill in self.deconvs following the given architecture
         Sequential(
@@ -59,9 +90,23 @@ class Decoder(nn.Module):
                 (7): Conv2d(32, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
             )
         """
+        self.deconvs = nn.Sequential(
+            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.ConvTranspose2d(64, 32, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(32, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+        )
+        self.fc = nn.Linear(self.latent_dim, self.base_size)
 
     def forward(self, z):
         #TODO 2.1: forward pass through the network, first through self.fc, then self.deconvs.
+        z = self.fc(z)
+        z = z.view(-1, 256, int(self.output_shape[1]/8), int(self.output_shape[2]/8))
+        out = self.deconvs(z)
         return out
 
 class AEModel(nn.Module):

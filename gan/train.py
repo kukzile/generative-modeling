@@ -40,15 +40,6 @@ def get_optimizers_and_schedulers(gen, disc):
         optim_generator, lambda x: 1 - (0.68*x) / 100000
     )
 
-    # # Adeesh Code Starts
-    # optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0, 0.9))
-    # scheduler_discriminator = torch.optim.lr_scheduler.LinearLR(optim_discriminator,1,1/500000,500000)
-
-    # optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0, 0.9))
-    # scheduler_generator = torch.optim.lr_scheduler.LinearLR(optim_generator,1,1/100000,100000)
-    # # Adeesh Code Ends
-
-
     return (
         optim_discriminator,
         scheduler_discriminator,
@@ -122,18 +113,12 @@ def train_model(
                 disc_output_train = disc(train_batch)
                 disc_output_gen = disc(gen_output)
                 
-                # ADEESH CODE STARTS HERE
-                # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
-                # eps = torch.rand(1).cuda()
-                # # print("Eps / shape = ", eps, eps.shape)
-                # # print("Gen out/ train_batch shape = ", gen_out.shape,train_batch.shape)
-                # interp = eps * gen_output + (1 - eps) * train_batch
-                # discrim_interp = disc(interp)
-                # ADEESH CODE ENDS HERE
-
                 # TODO make changes for 1.5
                 # discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, interpolated_output)
-                discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, None, None, None)
+                epsilon = torch.rand(train_batch.shape[0], 1, 1, 1).cuda()
+                interpolated_batch = (epsilon * train_batch + (1 - epsilon) * gen_output).requires_grad_(True)
+                interpolated_output = disc(interpolated_batch)
+                discriminator_loss = disc_loss_fn(disc_output_train, disc_output_gen, interpolated_output, interpolated_batch, lamb)
 
             optim_discriminator.zero_grad(set_to_none=True)
             scaler.scale(discriminator_loss).backward()
@@ -146,7 +131,6 @@ def train_model(
                     gen_output = gen(100)
                     disc_output_gen = disc(gen_output)
                     
-                    #Adeesh code starts here
                     generator_loss = gen_loss_fn(disc_output_gen)
 
                 optim_generator.zero_grad(set_to_none=True)
